@@ -51,6 +51,41 @@ index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="7"
 | table _time User OriginalFileName ImageLoaded process_id
 ![Q6](https://github.com/user-attachments/assets/e29197f3-7493-4b5e-94ab-fcca6a6a9ddb)
 Answer: 8592
+# Q7 To maintain persistence, the attacker created a scheduled task that executes at system logon. What was the name of the scheduled task?
+Splunk Query: index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="1" User="FINANCEES\\knixon" *schtasks.exe*
+| sort +_time
+| dedup CommandLine 
+| table User OriginalFileName ParentCommandLine CommandLine'
+![Q7](https://github.com/user-attachments/assets/59df1bcf-ae0a-4baf-be51-4652b25ffeb5)
+Answer: WiindowsUpdate
+# Q8 As part of persistence, a registry key was created to ensure the script runs on user logon. What is the full registry key that was added?
+We know that WiindowsUpdate executes at system log on using the commandline, so then we query for additional commands that were executed. I noticed there was a powershell script that was executed in B64. 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="1" User="FINANCEES\\knixon" 
+| sort +_time
+| table _time User CommandLine
+![Q8](https://github.com/user-attachments/assets/839efb0e-b057-4265-860d-b0633ca91387)
+From there, copy the encoded command into CyberChef and tell CyberChef to Decode in B64/remove null bytes. 
+![Q8part2](https://github.com/user-attachments/assets/88876d62-e5f4-4ad6-b5ab-9d7e91ed710a)
+Answer: HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdater 
+# Q9 To evade detection, the attacker excluded 3 directories from Windows Defender. What are the full paths of the excluded directories?
+Same query that we used before, in this case we saw 3 powershell scripts being executed.
+![Q9](https://github.com/user-attachments/assets/2d1a026b-0a1c-435a-9208-df1b2a0f4119)
+Decode them all using CyberChef as shown, here's one of the answers that was decoded. 
+![Q9Part1](https://github.com/user-attachments/assets/11a92e8e-ae93-4c47-a528-8571b910de27)
+Answer: C:\ProgramData\Microsoft\ssh, %APPDATA%\Microsoft, %LOCALAPPDATA%\Temp
+# Q10 To establish communication with a remote server, a beacon file was dropped on the system. What was the name of the dropped beacon file?
+Same query: 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="1" User="FINANCEES\\knixon" 
+| sort +_time
+| table _time User CommandLine
+Look for any unusual files and we can take a look using this screenshot here. 
+![Q10](https://github.com/user-attachments/assets/47005f65-a0db-47e1-9a06-aa705f353a99)
+Answer: Pancake.jpg.exe
+# Q11: The beacon was used to communicate with the attacker’s Command and Control (C2) infrastructure. What was the IP address used for C2 communication? 
+Normally, I would check for any outbound network connections, but in this case we found it in Q1. 
+![BlackBastaHostUrl](https://github.com/user-attachments/assets/69919a1e-d1e0-4bb4-85d2-891f40ec97f9)
+Answer: 54.93.105.22
+# Q12
 
 
 
