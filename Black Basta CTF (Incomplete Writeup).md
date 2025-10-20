@@ -37,6 +37,25 @@ Answer: F6w1S48.vbs
 # Q4: What is the full file path of the file that was created after the Excel document was opened?
 Well, if we looked at the previous screenshot there's our full file path. 
 Answer: C:\Users\knixon\AppData\Local\Temp\F6w1S48.vbs
+# Q5: During the early execution stage, a DLL was deployed as part of the attack chain. What is the name of this DLL?
+I looked for Sysmon Event IDs pertaining to DLLs that were deployed, so in this case I used Sysmon Event ID 7. 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="7" User="FINANCEES\\knixon" | sort +_time
+| table _time User OriginalFileName ImageLoaded
+Below is the screenshot: 
+![Q5](https://github.com/user-attachments/assets/a7b2824d-d0f9-41d4-86a8-4eb81eff011d)
+WindowsUpdaterFX.dll is suspicious... why would it need to spawn for a Windows Update when you have windows updates running on your computer at all times. 
+Answer: WindowsUpdaterFX.dll
+# Q6: What was the Process ID of the process that launched the malicious DLL?
+We know that WindowsUpdaterFX.dll is the malicious DLL, so all we have to ask Splunk to table the process_id
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="7" User="FINANCEES\\knixon" | sort +_time
+| table _time User OriginalFileName ImageLoaded process_id
+![Q6](https://github.com/user-attachments/assets/e29197f3-7493-4b5e-94ab-fcca6a6a9ddb)
+Answer: 8592
+
+
+
+
+
 
 
 
