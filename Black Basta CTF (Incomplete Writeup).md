@@ -27,6 +27,19 @@ Splunk Query: index=* source="xmlwineventlog:microsoft-windows-sysmon/operationa
 I want the SHA256 of that file. I asked Splunk to table the time, User, TargetFilename, and Hash. Now by default, splunk will display lots of file hashes, so I asked Splunk to reduce duplicates of those hashes, so I used dedup for this very specific instance.
 ![BlackBastaQ2Part2Answer](https://github.com/user-attachments/assets/7d3f1be3-294d-48d1-8662-0b525a6b1839)
 Answer: 030E7AD9B95892B91A070AC725A77281645F6E75CFC4C88F53DBF448FFFD1E15
+# Q3: Following the execution of the malicious Excel file, an additional file was created to continue the attack. What is the name of this file?
+Sysmon Event ID 11 is relevant here. I queried using: index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventID="11" User="FINANCEES\\knixon"
+| sort +_time 
+| table _time User TargetFilename
+I just want the filename that was created, the startup interaction by powershell is not relevant to me. Below is that screenshot.
+![BlackBastaQ3Q4Answer](https://github.com/user-attachments/assets/d8b9c93c-8311-41c1-9313-08d16758db9b)
+Answer: F6w1S48.vbs
+# Q4: What is the full file path of the file that was created after the Excel document was opened?
+Well, if we looked at the previous screenshot there's our full file path. 
+Answer: C:\Users\knixon\AppData\Local\Temp\F6w1S48.vbs
+
+
+
 
 
 
