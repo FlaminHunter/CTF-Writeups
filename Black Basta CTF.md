@@ -82,7 +82,7 @@ Look for any unusual files and we can take a look using this screenshot here.
 ![Q10](https://github.com/user-attachments/assets/47005f65-a0db-47e1-9a06-aa705f353a99)
 Answer: Pancake.jpg.exe
 # Q11: The beacon was used to communicate with the attacker’s Command and Control (C2) infrastructure. What was the IP address used for C2 communication? 
-Normally, I would check for any outbound network connections, but in this case we found it in Q1. 
+Normally, I would check for any outbound network connections using Sysmon Event ID 3, but due to the nature of the lab environment there was no outbound connections possible, so no results. In a real world environment, I would check for outbound network connections using Sysmon Event ID 3 or Windows Event Logging pertaining to outbound network connections.
 ![BlackBastaHostUrl](https://github.com/user-attachments/assets/69919a1e-d1e0-4bb4-85d2-891f40ec97f9)
 Answer: 54.93.105.22
 # Q12: To move laterally across the network, the attacker deployed a remote execution tool. What tool was used by the attacker to run commands remotely on other systems in the network?
