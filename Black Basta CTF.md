@@ -1,4 +1,5 @@
 # Black Basta CTF on CyberDefenders platform
+CTF: https://cyberdefenders.org/blueteam-ctf-challenges/black-basta/
 A financial employee at OrionTech mistakenly downloaded a ZIP file from an email claiming to be from a trusted vendor. The attachment contained what appeared to be a document, but it initiated a chain of actions that compromised the system and led to a broader network intrusion.
 Your objective is to analyze the artifacts left behind, track the attacker’s movements across the environment, and understand the techniques used at each stage of the kill chain.
 Black Basta is a known ransomware group that established its presence in April 2022, but the members of that group has since moved on to other known ransomware groups today. Regardless, the Tactics Techniques and Procedures that were emulated by CyberDefenders can assist us in our log analysis skills and how we can effectively manage risk to customer environments. 
