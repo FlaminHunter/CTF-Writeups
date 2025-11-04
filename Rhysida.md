@@ -66,7 +66,7 @@ For the next couple of questions, I will be using this query below for the answe
 Splunk Query:
 index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" user=Administrator
 | sort +_time
-| table _time user TargetFilename ParentCommandLine CommandLine
+| table _time user ParentCommandLine CommandLine
 I started paying attention to file execution and what it was doing. For exmaple, why is rundll32 running WindowsUpdate.dll and running a powershell script which after decoding from Base64 is executing a command that disables WindowsDefender?
 ![SplunkQuery](https://github.com/user-attachments/assets/cf098402-6d08-4fc8-adb1-0a1a38f27d9a)
 From there, I scrolled down with the below screenshot for the answer:
@@ -179,6 +179,127 @@ Upon looking at MITRE: this is what we got
 ![PsExecMitre](https://github.com/user-attachments/assets/09fbe2fd-a112-4317-b441-ee5db5b96c9e)
 
 Answer: T1569.002
+
+# Q15 To establish ongoing access, a command and control beacon was deployed. What is the IP address of the C2 server the system communicated with?
+
+Upon seeing previous screenshots where we ran the Splunk Query: 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" user=Administrator
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+![Rundll32](https://github.com/user-attachments/assets/f7dcc589-b96b-4bb0-8320-0bc67cc5e08e)
+We could tell in the ParentCommandLine section, where rundll32 ran WindowsUpdate.dll and sent various commands over to the compromised endpoint. Knowing this, I'm almost certain that rundll32 is the malicious file that beacons to a C2 server. 
+
+To test my theory out: I query for outbound network connections pertaining to the malicious DLL using Sysmon Event ID = 3.
+Below is the query:
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="3" *rundll32* 
+| stats count by DestinationIp
+This is what I got:
+![Rundll32C2](https://github.com/user-attachments/assets/183be3c7-fda7-4ccd-91cc-0344660abedc)
+Answer: 3.70.203.137
+
+# Q16 A remote access tool was dropped on the system, allowing full remote control. What is the name of this tool?
+We will be using the same query to answer these next upcoming questions.
+Using the same query: 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" user=Administrator
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+I found: 
+![Anydesk](https://github.com/user-attachments/assets/3a1949c5-60c7-44d5-b1e3-f55fa4d5cb18)
+
+Answer: AnyDesk
+
+# Q17 After establishing the remote access session, the attacker issued a command to retrieve system-specific identifiers. What argument was passed to the tool?
+
+Using the same query, we check for any commands that utilized AnyDesk and the argument passed in the command line.
+![GetID](https://github.com/user-attachments/assets/2d435e0e-5ec4-456d-8b16-97f2176b431c)
+
+Answer: --get-id
+
+# Q18 Sensitive documents were collected and saved in a public directory. What is the full file path of the text file used to store this staged data?
+We can still use the same query here, but we do have to think a little bit here. 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" user=Administrator
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+We can't get any additional answers from the User named Administrator, however, we do notice that rdpcliip.exe is being used here which allows the threat actor to RDP onto another account. There are two users we can see here: kmiles and rmcdaniel
+![kmiles](https://github.com/user-attachments/assets/1169abab-3937-49de-b7b5-7966e7ae6609)
+I decided to look into kmiles since that was the first account I noticed. I did it via this Splunk Query.
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" user=kmiles
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+This is the result:
+![ResultKmiles](https://github.com/user-attachments/assets/109d5009-a5cc-4395-8ae1-3debcabc9767)
+Scroll down further there's our answer:
+![sensitivefilestxt](https://github.com/user-attachments/assets/b318b56e-9ea9-44c8-b0fa-0cb6e488d0a5)
+Answer: C:\Users\Public\sensitive_files.txt
+
+# Q19 The attacker compressed the collected data into a single archive file for extraction. What is the name of the archive file?
+
+Using the following query:
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" 
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+![PainfulQuery](https://github.com/user-attachments/assets/e994b0e7-3fe5-4569-967c-168a911a6944)
+
+Not the most efficient way to go about it if I had to be honest, but we could tell after Sensitive_Files.txt stores sensitive documents, I noticed a PowerShell Command executed in Base64. 
+The result of decoding it in Base64:
+![CompanyData](https://github.com/user-attachments/assets/f9a318f6-ee0f-4fcc-b382-ca0d29595c6e)
+
+Answer: company_data.zip
+
+# Q20 A ransomware payload was deployed to cause maximum damage. What is the name of the malicious executable launched during the final stage of the attack?
+I used the same query for Q19, the difference is I used dedup to reduce the amount of repeats in the logs that I saw with ParentCommandLine. 
+Splunk Query: 
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" EventCode="1" 
+| sort +_time 
+| table _time user ParentCommandLine CommandLine
+| dedup ParentCommandLine
+![Dedupp](https://github.com/user-attachments/assets/02c8baef-bf6b-4f92-b7c5-fdd11cd5f557)
+Scroll down further:
+![Nbd](https://github.com/user-attachments/assets/d259f57b-5e8a-4e0d-be1d-1176fbacb4ea)
+
+Answer: Nbd6a7v.exe
+
+# Q21 Instead of dropping a typical ransom note, the attacker left behind a uniquely named file. What is the name of the note that was dropped?
+I've detonated ransomware in my sandboxed environment before, so by default I know after the ransomware encryptor has detonated, it will deploy a ransom note after it has encrypted files on your system in various places. 
+Nonetheless, the following is my query:
+index=* source="xmlwineventlog:microsoft-windows-sysmon/operational" process_name=*Nbd6a7v.exe*  EventCode=11 | sort +_time 
+| stats count by User TargetFilename process_path process_name
+The result:![CriticalBreachDetected](https://github.com/user-attachments/assets/c9070a3c-bb97-44f8-8ab7-b2109b8f49de)
+
+Answer: CriticalBreachDetected.pdf
+
+# Q22 After compromising the domain controller, the attacker stored tools in a sensitive location. What is the full path of the directory used for staging their tools?
+
+As we saw from the previous screenshot here:
+![CriticalBreachDetected](https://github.com/user-attachments/assets/9e555769-3278-4388-bee1-6103cc5384a7)
+
+Answer: C:\Windows\System32
+
+This was a great CTF, but if I had to give myself critical feedback I did not document all of my queries and my thought processes as I was doing the CTF. I definitely had to essentially do the CTF again and referred help from various sources. It was probably from the fact that I just wanted to get the CTF done over with. Nonetheless, this was a great CTF and looking forward to doing similar CTFs to further develop my thought processes and learning how to query for information more effectively. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
