@@ -163,13 +163,24 @@ Answer: 3516
 
 
 # Q13 To restrict access to the remote session, the attacker configured a password. What password was set for the remote tool?
-Using the same query we used on Q5:
+Using the same query we used on Q5. It will also be used for the next few questions.
 index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" user=Administrator
 | sort +_time
 | table _time user TargetFilename ParentCommandLine CommandLine
 ![PasswordCreate](https://github.com/user-attachments/assets/45de765e-3532-4d3f-89cc-fd5b3783020f)
 
 Answer: Rhys1d@2025!
+ 
+# Q14 During lateral movement, the attacker used a service-based technique to execute commands on remote systems. What MITRE sub-technique did they use?
+We could see in the logs that PsExec64 was referred to here:
+![PsExec64](https://github.com/user-attachments/assets/f607147f-feda-4e30-877c-47b806a37377)
+
+Upon looking at MITRE: this is what we got
+![PsExecMitre](https://github.com/user-attachments/assets/09fbe2fd-a112-4317-b441-ee5db5b96c9e)
+
+Answer: T1569.002
+
+
 
 
 
