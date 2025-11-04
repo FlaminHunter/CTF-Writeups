@@ -96,8 +96,80 @@ Using the same query, I checked for the commandline utility. Below is the screen
 
 Answer: auditpol
 
+# Q9 Log records indicate several event categories were erased from the system. What logs did the attacker clear to cover their tracks?
+Using the same query, we check for commands that was used to clear logs. I did have to reference MITRE as I do this writeup here, and here's what I found so far. 
+![Wevutil](https://github.com/user-attachments/assets/14eb7e94-9d9a-4c99-8b66-015fd81aef1a)
+We could see Wevtutil with command cl, which upon referencing mitre uses Wevtutil to clear logs in System, Application, and Security. 
+![MitreClearWinEvent](https://github.com/user-attachments/assets/204f132d-7a62-47c3-9925-a417f58a4f73)
+
+Answer: System, Application, Security
+
+# Q10 A credential-dumping utility was executed to extract browser-stored credentials. What is the SHA256 hash of the malicious binary used?
+
+Being honest, I also don't remember how I got the answer (and looking back I should have done good documentation), so what I did to answer this question again is to have splunk query for file creation. 
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1"
+| stats count by _time User CommandLine ParentCommandLine ParentImage Hashes
+| sort _time
+![SplunkFailQuery](https://github.com/user-attachments/assets/98beb78f-2dec-469e-a73f-660b9401ee60)
 
 
+This by default gave me wayyy too many splunk logs to look at, which would have been extremely difficult to filter out the logs I actually needed. So then, I refer back to the malicious DLL which is WindowsUpdate.Dll and added it to my query.
+
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" *WindowsUpdate.dll*
+| stats count by _time User CommandLine ParentCommandLine ParentImage Hashes
+| sort _time
+
+Which upon looking further, BCleaner.exe was executed in the NT Authority\System. I definitely would have missed this 100% because had I used the same query using User=Administrator while doing this writeup, would have been difficult to answer.
+![BCleaner](https://github.com/user-attachments/assets/a99957c9-c66f-4ad5-aa09-59556f0cdde8)
+
+From there I queried for that malicious binary by wildcarding it and querying for Sysmon EventCode 29 which indicates that a File Executable has been detected. 
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="29" *BCleaner* 
+| table _time User Image Hashes
+![BCleanerHash](https://github.com/user-attachments/assets/955118f9-fb90-4b09-af74-5d86a819013a)
+
+and since it is asking for the SHA256, we found that in the first log. 
+
+Referencing VirusTotal, and checking the Analysis of Security Vendors this is a BrowserStealer that extracts credentials from the browser.
+![Virustotal](https://github.com/user-attachments/assets/197e39a7-c69c-4cab-b9da-332b2a224f94)
+
+
+Answer: 8E7A80FFC582E238F3828383594D9039C99157FA1313ABA58237CDAE3013FE69
+
+# Q11 While expanding control over the network, a file containing dumped credentials was created. What is the name of the file used to store the stolen credentials?
+
+Using the same query we used on Q5: 
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" user=Administrator
+| sort +_time
+| table _time user TargetFilename ParentCommandLine CommandLine
+We can find that credentials.txt was used here.
+![Credentials](https://github.com/user-attachments/assets/308c1042-d0d7-4216-995b-6135396d6625)
+
+Answer: credentials.txt
+
+# Q12 A failed credential dumping attempt triggered security alerts. What is the ProcessId of the process that performed this failed action?
+Being honest, I also don't remember how I got the answer (and looking back I should have done good documentation), so what I did to answer this question again is to have splunk query for file creation. Then I referenced the same query as I used for Q10: 
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" *WindowsUpdate.dll*
+| stats count by _time User CommandLine ParentCommandLine ParentImage Hashes
+| sort _time
+
+Which upon digging deeper, I found ntdsutil in the CommandLine. Ntdsutil if we refer to mitre is used for credential dumping. Now, I definitely don't know why it was used yet, but upon looking further I learned that Active Directory is a native Windows Tool that has all the tools that configures permissions for users, computers, printers, network resources and more. Threat groups want those credentials for accounts because they are the "keys" to the kingdom, hence why it is targeted a bunch and they hunt for credentials that have higher level permissions as well, in order to achieve their objectives such as extracting files from the system.
+![NTDSutilMitre](https://github.com/user-attachments/assets/030e1e39-f6f5-4597-a19c-4a3d8c70c9b6)
+
+From there: I queried for Splunk using NTDSutil
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" *ntdsutil* 
+| table _time User OriginalFileName ParentImage ParentCommandLine process_id
+![ntdsutilcmd](https://github.com/user-attachments/assets/de06b650-6e7d-412d-9db2-62ca67fb338a)
+Answer: 3516
+
+
+# Q13 To restrict access to the remote session, the attacker configured a password. What password was set for the remote tool?
+Using the same query we used on Q5:
+index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="1" user=Administrator
+| sort +_time
+| table _time user TargetFilename ParentCommandLine CommandLine
+![PasswordCreate](https://github.com/user-attachments/assets/45de765e-3532-4d3f-89cc-fd5b3783020f)
+
+Answer: Rhys1d@2025!
 
 
 
