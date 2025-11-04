@@ -10,8 +10,8 @@ index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode="
 | stats count by _time user QueryName
 | dedup QueryName
 I used EventCode 22 for this particular query, because it is the only Event Code that queries for DNS. Below is the screenshot.
+![Q1](https://github.com/user-attachments/assets/ecd3eff7-359c-438b-bbd8-7322c22bd6a1)
 
-![Q1](https://github.com/user-attachments/assets/c5c6bf6a-86a4-4984-84f4-b8274ba353b9)
 As we can see, microsoftoniine.ddns.net is rather suspicious because it is trying to imitate a domain supposedly owned by Microsoft. Now, I am taking note of the user and time (2025-04-20 10:52:07) because it gives me a trail that I can follow. The user named Administrator is likely compromised here.
 Answer: microsoftoniine.ddns.net
 
@@ -23,7 +23,7 @@ index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
 | stats count by _time user TargetFilename process_id
 | dedup TargetFilename
 First, I wanted to check if there was OpenSSH installed, which Sysmon Event ID 15 would indicate to me that a new file stream has been created. The screenshot below indicates that OpenSSH was installed.
-![Q2Part1](https://github.com/user-attachments/assets/9d19ca15-2bff-4eb5-901f-ded80b0154ea)
+![Q2Part1](https://github.com/user-attachments/assets/16bb13d9-1fa2-4c05-b2b4-d428c909f961)
 
 If I had to be honest, I was also stuck here, so half the time I was basically brute-forcing by having to reference EventCode 15 and checking EventCode 1. But if I had to do it again, Query for Sysmon Event ID 29 which according to UltimateWindowsSecurity detects the appearance of new EXEs and DLLs. 
 
@@ -31,8 +31,7 @@ Query:
 index=* source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=29 user=Administrator *OpenSSH*
 | sort +_time 
 | table _time user Image process_id
-
-![Q2Part2](https://github.com/user-attachments/assets/6f6f8e3a-914e-4761-bf4f-3aafa23b8599)
+![Q2Part2](https://github.com/user-attachments/assets/0a40ac01-9d48-4c9f-a7dc-019f45012eaf)
 
 Answer: 6936
 
